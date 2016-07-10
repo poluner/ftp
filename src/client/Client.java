@@ -44,7 +44,7 @@ public class Client {
 					ios.oos.flush();
 					for (int i = 0; i < n; i++) {
 						Socket socket_file = ios.socket_file(model, ip_server);// 每一个文件都开一个端口
-						IOS.load(new File(pathName_clients[i]), socket_file, op, way);
+						IOS.load(new File(pathName_clients[i]), socket_file, op.equals("downloadN")?"download":"upload", way);//一个文件
 						socket_file.close();// 用完就关闭
 					}
 				}
