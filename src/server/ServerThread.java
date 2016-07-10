@@ -22,24 +22,14 @@ public class ServerThread extends Thread {// 一旦断网，服务器的这个�
 					System.out.println("通信结束");
 					break;
 				}
-				if (op.startsWith("download") || op.startsWith("upload")) {
+				if (op.equals("download") || op.equals("upload")) {// 一个文件，多个文件会多次执行这里
 					ios.writeObject(cd);// 首先传输当前路径
-					String model = (String) ios.readObject();
 					String way = (String) ios.readObject();
-					if (op.equals("download") || op.equals("upload")) {// 一个
-						String pathName = (String) ios.readObject();// 绝对路径
-						Socket socket_file = ios.socket_file(model);
-						ios.load(new File(pathName), socket_file, op.equals("download") ? "upload" : "download", way);// 服务器的上传下载和客户端刚好相反
-						socket_file.close();// 用完了就关闭socket流
-					} else {// 多个
-						String pathNames[] = (String[]) ios.readObject();
-						for (String pathName : pathNames) {// 绝对路径
-							Socket socket_file = ios.socket_file(model);
-							ios.load(new File(pathName), socket_file, op.equals("downloadN") ? "upload" : "download",
-									way);// 服务器的上传下载和客户端刚好相反
-							socket_file.close();// 用完了就关闭socket流
-						}
-					}
+					String pathName = (String) ios.readObject();// 绝对路径
+					int port_file = ios.readInt();
+					Socket socket_file = ios.socket_file(port_file);
+					ios.load(new File(pathName), socket_file, op.equals("download") ? "upload" : "download", way);// 服务器的上传下载和客户端刚好相反
+					socket_file.close();// 用完了就关闭socket流
 				} else if (op.equals("list")) {// 列出当前目录下的目录结构
 					ios.writeObject(cd);
 					ios.writeObject(new File(cd).listFiles());
@@ -59,7 +49,8 @@ public class ServerThread extends Thread {// 一旦断网，服务器的这个�
 				}
 			}
 		} catch (Exception e) {
-			System.err.println("服务器断开一个线程");
+			e.printStackTrace();
+			System.err.println("断开一个连接");
 		}
 	}
 

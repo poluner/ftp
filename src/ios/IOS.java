@@ -78,14 +78,13 @@ public class IOS {// 关于IO流的处理，大多是指令流
 
 	// 主动模式：客户端指定墙外端口，服务器通过客户端的ip找到客户端并将自己的20端口连接至服务器的指定端口
 	// 被动模式：服务器随机生成一个高端端口，客户端通过服务器的ip找到服务器并连接至此端口
-	public Socket socket_file(String model) throws Exception {// 服务器
-		if (model.equals("port")) {// 主动
+	public Socket socket_file(int port) throws Exception {// 服务器
+		if (port != -1) {// 主动就直接用这个port
 			String ip = (String) readObject();// 客户端ip
-			int port = readInt();// 客户端的墙外端口
 			return new Socket(ip, port, InetAddress.getLocalHost(), 20);// 将本机20端口连接客户端的指定端口
 		} else {// 被动
 			// 高端端口号范围[1025,65535]，万一获取的端口正忙怎么办？
-			int port = new Random().nextInt(65535 - 1025 + 1) + 1025;// 服务器随机生成的高端端口
+			port = new Random().nextInt(65535 - 1025 + 1) + 1025;// 服务器随机生成的高端端口
 			writeInt(port);
 			ServerSocket serverSocket = new ServerSocket(port);
 			Socket socket = serverSocket.accept();// 等待客户端的连接
@@ -94,17 +93,15 @@ public class IOS {// 关于IO流的处理，大多是指令流
 		}
 	}
 
-	public Socket socket_file(String model, String ip) throws Exception {// 客户端
-		if (model.equals("port")) {// 主动
+	public Socket socket_file(int port, String ip) throws Exception {// 客户端
+		if (port != -1) {// 主动
 			writeObject(InetAddress.getLocalHost().getHostAddress());// 客户端ip
-			int port = sin.nextInt();// 客户端的墙外端口
-			writeInt(port);
 			ServerSocket serverSocket = new ServerSocket(port);
 			Socket socket = serverSocket.accept();// 等待服务器的连接
 			serverSocket.close();// 连接之后一定要关闭以释放该端口！！！
 			return socket;
 		} else {// 被动
-			int port = readInt();// 服务器的高端端口号
+			port = readInt();// 服务器的高端端口号
 			return new Socket(ip, port);// 通过服务器的ip连接至此高端端口
 		}
 	}
@@ -121,9 +118,14 @@ public class IOS {// 关于IO流的处理，大多是指令流
 		}
 	}
 
-	public IOS breakpoint(String pathName_server, String pathName_client, String model, String op, String way) {// 记录了服务器文件路径，即使传输断了也可以由路径找到破损文件并继续传输
+	public IOS breakpoint(String op, String way, String fileName_server, String pathName_client, int port_file) {// 记录了服务器文件路径，即使传输断了也可以由路径找到破损文件并继续传输
 		try {
-			Socket socket_file = socket_file(model, ip_server);
+			writeObject(op);
+			String cd = (String)readObject();// 服务器当前路径
+			writeObject(way);
+			writeObject(cd+"\\"+fileName_server);
+			writeInt(port_file);
+			Socket socket_file = socket_file(port_file, ip_server);
 			socket_file.setSoTimeout(10000);// 设置超时时间
 			load(new File(pathName_client), socket_file, op, way);// 传输
 			socket_file.close();// 成功传输并且用完才关闭，失败的话会自动关闭
@@ -133,7 +135,7 @@ public class IOS {// 关于IO流的处理，大多是指令流
 			if (ios != null) {
 				System.err.println("再次成功连接，是否继续传输刚才未传完的文件？y/n");
 				if (sin.next().equals("y")) {
-					ios = breakpoint(pathName_server, pathName_client, model, op, way);// 再次传输恐怕又出现断网，所以用递归
+					ios = breakpoint(op, way, fileName_server, pathName_client, port_file);// 再次传输恐怕又出现断网，所以用递归
 				}
 				return ios;// 返回最新的连接
 			}
