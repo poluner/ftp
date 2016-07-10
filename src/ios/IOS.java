@@ -33,6 +33,8 @@ public class IOS {// 关于IO流的处理，大多是指令流
 	}
 
 	public IOS(String ip_server, int port_cmd) throws Exception {// 客户端
+		this.ip_server = ip_server;
+		this.port_cmd = port_cmd;
 		socket_cmd = new Socket(ip_server, port_cmd);
 		oos = new ObjectOutputStream(socket_cmd.getOutputStream());
 		ois = new ObjectInputStream(socket_cmd.getInputStream());
@@ -78,7 +80,7 @@ public class IOS {// 关于IO流的处理，大多是指令流
 	// 被动模式：服务器随机生成一个高端端口，客户端通过服务器的ip找到服务器并连接至此端口
 	public Socket socket_file(String model) throws Exception {// 服务器
 		if (model.equals("port")) {// 主动
-			String ip = (String) ois.readObject();// 客户端ip
+			String ip = (String) readObject();// 客户端ip
 			int port = readInt();// 客户端的墙外端口
 			return new Socket(ip, port, InetAddress.getLocalHost(), 20);// 将本机20端口连接客户端的指定端口
 		} else {// 被动

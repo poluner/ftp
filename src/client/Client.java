@@ -4,7 +4,7 @@ import java.io.File;
 
 import ios.IOS;
 
-public class Client {// 如果是多文件的传输，断网后要获取断掉的文件
+public class Client {
 	static String ip_server = "127.0.0.1";// 服务器ip
 	static int port_cmd = 21;
 	static IOS ios;
