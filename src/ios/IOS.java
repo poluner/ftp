@@ -44,7 +44,7 @@ public class IOS {// 关于IO流的处理，大多是指令流
 	// 主动模式：客户端指定墙外端口，服务器通过客户端的ip找到客户端并将自己的20端口连接至服务器的指定端口
 	// 被动模式：服务器随机生成一个高端端口，客户端通过服务器的ip找到服务器并连接至此端口
 	public Socket socket_file(String model) throws Exception {// 服务器
-		if (model.equals("prot")) {// 主动
+		if (model.equals("port")) {// 主动
 			String ip = (String) ois.readObject();// 客户端ip
 			int port = ois.readInt();// 客户端的墙外端口
 			return new Socket(ip, port, InetAddress.getLocalHost(), 20);// 将本机20端口连接客户端的指定端口
