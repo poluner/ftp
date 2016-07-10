@@ -24,7 +24,7 @@ xn-1
 
 上传一个文件为：op="upload"，上传多个文件为：op="uploadN"
 
-主动模式为：model="port" port_client，被动模式为：model="passive"
+主动模式为：model="port"...port_client，被动模式为：model="passive"
 
 二进制方式为：way="binary"，ascii方式为：way="ascii"
 
@@ -32,7 +32,7 @@ xn-1
 
 则一个文件操作为：
 
-op model way s c
+op model way s c (port_client)//如果是主动模式，port_client在最后输入
 
 多个文件操作为：
 
@@ -45,3 +45,4 @@ s1 c1
 ...
 
 sn-1 cn-1
+(port_client)//如果是主动模式，port_client在最后输入
