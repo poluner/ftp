@@ -27,7 +27,7 @@ public class ServerThread extends Thread {// 一旦断网，服务器的这个�
 					String way = (String) ios.readObject();
 					String pathName = (String) ios.readObject();// 绝对路径
 					int port_file = ios.readInt();
-					Socket socket_file = ios.socket_file(port_file);
+					Socket socket_file = ios.socket_file(port_file, true);
 					ios.load(new File(pathName), socket_file, op.equals("download") ? "upload" : "download", way);// 服务器的上传下载和客户端刚好相反
 					socket_file.close();// 用完了就关闭socket流
 				} else if (op.equals("list")) {// 列出当前目录下的目录结构
@@ -38,10 +38,7 @@ public class ServerThread extends Thread {// 一旦断网，服务器的这个�
 				} else if (op.equals("cd")) {// 进入文件夹
 					String folder = (String) ios.readObject();
 					cd += "\\" + folder;
-				} else if (op.equals("delete")) {// 删除一个
-					String rPath = (String) ios.readObject();
-					IOS.deleteDir(cd + "\\" + rPath);
-				} else if (op.equals("deleteN")) {
+				} else if (op.equals("delete")) {// 删除多个
 					String rPaths[] = (String[]) ios.readObject();
 					for (String rPath : rPaths) {
 						IOS.deleteDir(cd + "\\" + rPath);

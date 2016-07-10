@@ -24,6 +24,7 @@ public class IOS {// 关于IO流的处理，大多是指令流
 	public Scanner sin;
 	public String ip_server;
 	public int port_cmd;
+	public static final int timeout=10000;
 
 	public IOS(Socket socket_cmd) throws Exception {// 服务器
 		this.socket_cmd = socket_cmd;
@@ -78,68 +79,68 @@ public class IOS {// 关于IO流的处理，大多是指令流
 
 	// 主动模式：客户端指定墙外端口，服务器通过客户端的ip找到客户端并将自己的20端口连接至服务器的指定端口
 	// 被动模式：服务器随机生成一个高端端口，客户端通过服务器的ip找到服务器并连接至此端口
-	public Socket socket_file(int port) throws Exception {// 服务器
-		if (port != -1) {// 主动就直接用这个port
-			String ip = (String) readObject();// 客户端ip
-			return new Socket(ip, port, InetAddress.getLocalHost(), 20);// 将本机20端口连接客户端的指定端口
-		} else {// 被动
-			// 高端端口号范围[1025,65535]，万一获取的端口正忙怎么办？
-			port = new Random().nextInt(65535 - 1025 + 1) + 1025;// 服务器随机生成的高端端口
-			writeInt(port);
-			ServerSocket serverSocket = new ServerSocket(port);
-			Socket socket = serverSocket.accept();// 等待客户端的连接
-			serverSocket.close();// 连接之后一定要关闭以释放该端口！！！
-			return socket;
+	public Socket socket_file(int port, boolean isServer) throws Exception {// 服务器
+		if (isServer) {
+			if (port != -1) {// 主动就直接用这个port
+				String ip = (String) readObject();// 客户端ip
+				return new Socket(ip, port, InetAddress.getLocalHost(), 20);// 将本机20端口连接客户端的指定端口
+			} else {// 被动
+				// 高端端口号范围[1025,65535]，万一获取的端口正忙怎么办？
+				port = new Random().nextInt(65535 - 1025 + 1) + 1025;// 服务器随机生成的高端端口
+				writeInt(port);
+				ServerSocket serverSocket = new ServerSocket(port);
+				Socket socket = serverSocket.accept();// 等待客户端的连接
+				serverSocket.close();// 连接之后一定要关闭以释放该端口！！！
+				return socket;
+			}
+		} else {
+			if (port != -1) {// 主动
+				writeObject(InetAddress.getLocalHost().getHostAddress());// 客户端ip
+				ServerSocket serverSocket = new ServerSocket(port);
+				Socket socket = serverSocket.accept();// 等待服务器的连接
+				serverSocket.close();// 连接之后一定要关闭以释放该端口！！！
+				return socket;
+			} else {// 被动
+				port = readInt();// 服务器的高端端口号
+				return new Socket(ip_server, port);// 通过服务器的ip连接至此高端端口
+			}
 		}
 	}
 
-	public Socket socket_file(int port, String ip) throws Exception {// 客户端
-		if (port != -1) {// 主动
-			writeObject(InetAddress.getLocalHost().getHostAddress());// 客户端ip
-			ServerSocket serverSocket = new ServerSocket(port);
-			Socket socket = serverSocket.accept();// 等待服务器的连接
-			serverSocket.close();// 连接之后一定要关闭以释放该端口！！！
-			return socket;
-		} else {// 被动
-			port = readInt();// 服务器的高端端口号
-			return new Socket(ip, port);// 通过服务器的ip连接至此高端端口
-		}
-	}
-
-	public IOS keepCconnect_cmd() {// 客户端，坚持传完文件，除非用户主动放弃！！！
+	public IOS keepConnect() {// 客户端，坚持传完文件，除非用户主动放弃！！！
 		try {
 			return new IOS(ip_server, port_cmd);// 连接成功
 		} catch (Exception e) {
-			System.err.println("未连接，是否连接？y/n");
+			System.out.println("连接断开，是否尝试连接？y/n");
 			if (sin.next().equals("y")) {
-				return keepCconnect_cmd();// 失败后继续连接
+				return keepConnect();// 失败后继续连接
 			}
-			return null;// 失败
+			return null;// 用户放弃连接
 		}
 	}
 
-	public IOS breakpoint(boolean first, String op, String way, String fileName_server, String pathName_client,
+	public IOS keepTrans(boolean first, String op, String way, String fileName_server, String pathName_client,
 			int port_file) {// 记录了服务器文件路径，即使传输断了也可以由路径找到破损文件并继续传输
 		try {
 			writeObject(op);
 			String cd = (String) readObject();// 服务器当前路径
-			if (first == false) // 如果不是第一次，路径就是绝对路径
-				cd = "";
-
+			if (first) // 在当且仅当第一次的时候确定了绝对路径
+				fileName_server = cd + "\\" + fileName_server;
 			writeObject(way);
-			writeObject(cd + "\\" + fileName_server);
+			writeObject(fileName_server);
 			writeInt(port_file);
-			Socket socket_file = socket_file(port_file, ip_server);
-			socket_file.setSoTimeout(10000);// 设置超时时间
+			Socket socket_file = socket_file(port_file, false);
+			socket_file.setSoTimeout(timeout);// 设置文件传输超时时间
 			load(new File(pathName_client), socket_file, op, way);// 传输
 			socket_file.close();// 成功传输并且用完才关闭，失败的话会自动关闭
 			return this;// 成功则返回自己
 		} catch (Exception e) {
-			IOS ios = keepCconnect_cmd();// 失败则返回新建立的
+			IOS ios = keepConnect();// 失败则返回新建立的
 			if (ios != null) {
-				System.err.println("再次成功连接，是否继续传输刚才未传完的文件？y/n");
+				System.out.println("再次成功连接，是否继续刚才文件的传输？y/n");
 				if (sin.next().equals("y")) {
-					ios = breakpoint(false, op, way, fileName_server, pathName_client, port_file);// 再次传输恐怕又出现断网，所以用递归
+					// 注意下面这句话是ios=ios.breakpoint(...)而不是ios=this.breakpoint(...)，因为这里要用新对象ios，旧的对象this因为断网而废掉了
+					ios = ios.keepTrans(false, op, way, fileName_server, pathName_client, port_file);// 再次传输恐怕又出现断网，所以用递归
 				}
 				return ios;// 返回最新的连接
 			}

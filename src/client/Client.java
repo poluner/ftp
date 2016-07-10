@@ -12,7 +12,7 @@ public class Client {
 	public static void main(String[] args) throws Exception {// 异常则结束程序
 		ios = new IOS(ip_server, port_cmd);// 21端口监听命令
 
-		while (true) {
+		while (ios != null) {// 在不是传文件的前提下，断网则立即退出
 			String op = ios.sin.next();
 			if (op.equals("bye")) {// 关闭流
 				ios.writeObject(op);
@@ -20,13 +20,10 @@ public class Client {
 				ios.close();
 				break;
 			}
-			if (op.startsWith("download") || op.startsWith("upload")) {// 首先获取服务器当前路径
+			if (op.equals("download") || op.equals("upload")) {// 多文件操作
 				String model = ios.sin.next();
 				String way = ios.sin.next();
-				int n = 1;// 一个文件
-				if (op.equals("downloadN") || op.equals("uploadN")) {// 多个文件
-					n = ios.sin.nextInt();
-				}
+				int n = ios.sin.nextInt();
 				String fileName_servers[] = new String[n];// 服务器文件名，由服务器的cd给出路径
 				String pathName_clients[] = new String[n];// 客户端文件路径
 				int port_files[] = new int[n];// 默认为-1，及被动模式，如果为主动模式则输入墙外端口号，每个文件都输入一次
@@ -36,11 +33,9 @@ public class Client {
 					port_files[i] = model.equals("port") ? ios.sin.nextInt() : -1;
 				}
 				for (int i = 0; i < n; i++) {
-					ios = ios.breakpoint(true, op.startsWith("download") ? "download" : "upload", way,
-							fileName_servers[i], pathName_clients[i], port_files[i]);
+					ios = ios.keepTrans(true, op, way, fileName_servers[i], pathName_clients[i], port_files[i]);
+					System.out.println(fileName_servers[i] + "传输结束");
 				}
-				System.out.println(op + "完成");
-
 			} else if (op.equals("list")) {// 显示目录
 				ios.writeObject(op);
 				String cd = (String) ios.readObject();
@@ -55,11 +50,7 @@ public class Client {
 				ios.writeObject(folder);
 			} else if (op.equals("cd\\")) {// 返回上一层目录
 				ios.writeObject(op);
-			} else if (op.equals("delete")) {
-				ios.writeObject(op);
-				String rPath = ios.sin.next();
-				ios.writeObject(rPath);
-			} else if (op.equals("deleteN")) {
+			} else if (op.equals("delete")) {// 删除多个
 				ios.writeObject(op);
 				int n = ios.sin.nextInt();// 删除个数
 				String rPaths[] = new String[n];
@@ -71,3 +62,4 @@ public class Client {
 		}
 	}
 }
+// download passive binary image.zip image.zip

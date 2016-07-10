@@ -8,6 +8,7 @@ public class MultServer {
 		ServerSocket serverSocket_cmd = new ServerSocket(21);// 21端口监听命令，这里异常则全部退出
 		while (true) {
 			new ServerThread(serverSocket_cmd.accept()).start();
+			System.out.println("服务器响应");
 		}
 	}
 
