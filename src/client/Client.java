@@ -36,8 +36,8 @@ public class Client {
 					port_files[i] = model.equals("port") ? ios.sin.nextInt() : -1;
 				}
 				for (int i = 0; i < n; i++) {
-					ios = ios.breakpoint(op.startsWith("download") ? "download" : "upload", way, fileName_servers[i],
-							pathName_clients[i], port_files[i]);
+					ios = ios.breakpoint(true, op.startsWith("download") ? "download" : "upload", way,
+							fileName_servers[i], pathName_clients[i], port_files[i]);
 				}
 				System.out.println(op + "完成");
 

@@ -118,12 +118,16 @@ public class IOS {// 关于IO流的处理，大多是指令流
 		}
 	}
 
-	public IOS breakpoint(String op, String way, String fileName_server, String pathName_client, int port_file) {// 记录了服务器文件路径，即使传输断了也可以由路径找到破损文件并继续传输
+	public IOS breakpoint(boolean first, String op, String way, String fileName_server, String pathName_client,
+			int port_file) {// 记录了服务器文件路径，即使传输断了也可以由路径找到破损文件并继续传输
 		try {
 			writeObject(op);
-			String cd = (String)readObject();// 服务器当前路径
+			String cd = (String) readObject();// 服务器当前路径
+			if (first == false) // 如果不是第一次，路径就是绝对路径
+				cd = "";
+
 			writeObject(way);
-			writeObject(cd+"\\"+fileName_server);
+			writeObject(cd + "\\" + fileName_server);
 			writeInt(port_file);
 			Socket socket_file = socket_file(port_file, ip_server);
 			socket_file.setSoTimeout(10000);// 设置超时时间
@@ -135,7 +139,7 @@ public class IOS {// 关于IO流的处理，大多是指令流
 			if (ios != null) {
 				System.err.println("再次成功连接，是否继续传输刚才未传完的文件？y/n");
 				if (sin.next().equals("y")) {
-					ios = breakpoint(op, way, fileName_server, pathName_client, port_file);// 再次传输恐怕又出现断网，所以用递归
+					ios = breakpoint(false, op, way, fileName_server, pathName_client, port_file);// 再次传输恐怕又出现断网，所以用递归
 				}
 				return ios;// 返回最新的连接
 			}
