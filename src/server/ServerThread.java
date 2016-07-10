@@ -5,61 +5,61 @@ import java.net.Socket;
 
 import ios.IOS;
 
-public class ServerThread extends Thread {
-	String cd = "C:";// 设置初始目录
+public class ServerThread extends Thread {// 一旦断网，服务器的这个线程就会立刻结束，所以这里不用做特别的改动
+	String cd = "B:\\Desktop";// 设置初始目录
 	IOS ios;
 
 	ServerThread(Socket socket_cmd) throws Exception {
-		ios = new IOS(socket_cmd, false);
+		ios = new IOS(socket_cmd);
 	}
 
 	public void run() {
 		try {
 			while (true) {
-				String op = (String) ios.ois.readObject();
+				String op = (String) ios.readObject();
 				if (op.equals("bye")) {
 					ios.close();
+					System.out.println("通信结束");
 					break;
 				}
 				if (op.startsWith("download") || op.startsWith("upload")) {
-					String model = (String) ios.ois.readObject();
-					String way = (String) ios.ois.readObject();
+					ios.writeObject(cd);// 首先传输当前路径
+					String model = (String) ios.readObject();
+					String way = (String) ios.readObject();
 					if (op.equals("download") || op.equals("upload")) {// 一个
-						String pathName = cd + "\\" + (String) ios.ois.readObject();
+						String pathName = (String) ios.readObject();// 绝对路径
 						Socket socket_file = ios.socket_file(model);
-						IOS.load(new File(pathName), socket_file, op.equals("download") ? "upload" : "download", way);// 服务器的上传下载和客户端刚好相反
+						ios.load(new File(pathName), socket_file, op.equals("download") ? "upload" : "download", way);// 服务器的上传下载和客户端刚好相反
 						socket_file.close();// 用完了就关闭socket流
 					} else {// 多个
-						String pathNames[] = (String[]) ios.ois.readObject();
-						for (String pathName : pathNames) {
+						String pathNames[] = (String[]) ios.readObject();
+						for (String pathName : pathNames) {// 绝对路径
 							Socket socket_file = ios.socket_file(model);
-							IOS.load(new File(cd + "\\" + pathName), socket_file,
-									op.equals("downloadN") ? "upload" : "download", way);// 服务器的上传下载和客户端刚好相反
+							ios.load(new File(pathName), socket_file, op.equals("downloadN") ? "upload" : "download",
+									way);// 服务器的上传下载和客户端刚好相反
 							socket_file.close();// 用完了就关闭socket流
 						}
 					}
-
 				} else if (op.equals("list")) {// 列出当前目录下的目录结构
-					ios.oos.writeObject(cd);
-					ios.oos.writeObject(new File(cd).listFiles());
-					ios.oos.flush();
+					ios.writeObject(cd);
+					ios.writeObject(new File(cd).listFiles());
 				} else if (op.equals("cd\\")) {// 返回上一层
 					cd = cd.substring(0, cd.lastIndexOf("\\"));
 				} else if (op.equals("cd")) {// 进入文件夹
-					String folder = (String) ios.ois.readObject();
+					String folder = (String) ios.readObject();
 					cd += "\\" + folder;
 				} else if (op.equals("delete")) {// 删除一个
-					String rPath = (String) ios.ois.readObject();
+					String rPath = (String) ios.readObject();
 					IOS.deleteDir(cd + "\\" + rPath);
 				} else if (op.equals("deleteN")) {
-					String rPaths[] = (String[]) ios.ois.readObject();
+					String rPaths[] = (String[]) ios.readObject();
 					for (String rPath : rPaths) {
 						IOS.deleteDir(cd + "\\" + rPath);
 					}
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			System.err.println("服务器断开一个线程");
 		}
 	}
 
