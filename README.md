@@ -32,17 +32,16 @@ xn-1
 
 则一个文件操作为：
 
-op model way s c (port_client)//如果是主动模式，port_client在最后输入
+op model way s c (port_client) //如果是主动模式，port_client在路径最后输入
 
 多个文件操作为：
 
 op model way n
 
-s0 c0
+s0 c0 (port_client)
 
-s1 c1
+s1 c1 (port_client)
 
 ...
 
-sn-1 cn-1
-(port_client)//如果是主动模式，port_client在最后输入
+sn-1 cn-1 (port_client)
