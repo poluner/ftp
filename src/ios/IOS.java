@@ -14,8 +14,14 @@ import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.sql.Connection;
 import java.util.Random;
 import java.util.Scanner;
+import java.util.Vector;
+
+import javax.swing.JOptionPane;
+
+import com.sun.javafx.sg.prism.web.NGWebView;
 
 public class IOS {// 关于IO流的处理，大多是指令流
 	public Socket socket_cmd;
@@ -24,22 +30,38 @@ public class IOS {// 关于IO流的处理，大多是指令流
 	public Scanner sin;
 	public String ip_server;
 	public int port_cmd;
-	public static final int timeout=10000;
+	public static final int timeout = 10000;
+	public String id;
+	public String pw;
+	public static Vector<String> vrPath;// 相对路径
+	public String cd = "B:\\Desktop";// 设置服务器当前目录，客户端的会与之同步
 
-	public IOS(Socket socket_cmd) throws Exception {// 服务器
+	public IOS(Socket socket_cmd, Connection connection) throws Exception {// 服务器
 		this.socket_cmd = socket_cmd;
 		ois = new ObjectInputStream(socket_cmd.getInputStream());
 		oos = new ObjectOutputStream(socket_cmd.getOutputStream());
 		sin = new Scanner(System.in);
+
+		id = (String) readObject();// 获取用户发来的id和pw，然后更新自己保存过的id和pw
+		pw = (String) readObject();
+		if (connection.prepareStatement("select * from Users where id='" + id + "'and pw='" + pw + "'").executeQuery()
+				.next() == false)
+			throw new Exception();// 密码错误则抛出异常，这样客户端也就自动断开连接了
+		writeObject(cd);
 	}
 
-	public IOS(String ip_server, int port_cmd) throws Exception {// 客户端
+	public IOS(String ip_server, int port_cmd, String id, String pw) throws Exception {// 客户端
 		this.ip_server = ip_server;
 		this.port_cmd = port_cmd;
+		this.id = id;
+		this.pw = pw;
 		socket_cmd = new Socket(ip_server, port_cmd);
 		oos = new ObjectOutputStream(socket_cmd.getOutputStream());
 		ois = new ObjectInputStream(socket_cmd.getInputStream());
 		sin = new Scanner(System.in);
+		writeObject(id);
+		writeObject(pw);
+		cd = (String) readObject();// 如果服务器抛出异常，这里也会异常，从而连接不上
 	}
 
 	public void close() throws Exception {// 关闭流
@@ -65,6 +87,11 @@ public class IOS {// 关于IO流的处理，大多是指令流
 		oos.flush();
 	}
 
+	public void writeBoolean(boolean val) throws IOException {
+		oos.writeBoolean(val);
+		oos.flush();
+	}
+
 	public Object readObject() throws ClassNotFoundException, IOException {
 		return ois.readObject();
 	}
@@ -75,6 +102,10 @@ public class IOS {// 关于IO流的处理，大多是指令流
 
 	public long readLong() throws IOException {
 		return ois.readLong();
+	}
+
+	public boolean readBoolean() throws IOException {
+		return ois.readBoolean();
 	}
 
 	// 主动模式：客户端指定墙外端口，服务器通过客户端的ip找到客户端并将自己的20端口连接至服务器的指定端口
@@ -109,25 +140,20 @@ public class IOS {// 关于IO流的处理，大多是指令流
 
 	public IOS keepConnect() {// 客户端，坚持传完文件，除非用户主动放弃！！！
 		try {
-			return new IOS(ip_server, port_cmd);// 连接成功
+			return new IOS(ip_server, port_cmd, id, pw);// 连接成功
 		} catch (Exception e) {
-			System.out.println("连接断开，是否尝试连接？y/n");
-			if (sin.next().equals("y")) {
+			if (JOptionPane.showConfirmDialog(null, "是否尝试连接？", "连接已断开",
+					JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION)
 				return keepConnect();// 失败后继续连接
-			}
 			return null;// 用户放弃连接
 		}
 	}
 
-	public IOS keepTrans(boolean first, String op, String way, String fileName_server, String pathName_client,
-			int port_file) {// 记录了服务器文件路径，即使传输断了也可以由路径找到破损文件并继续传输
+	public IOS keepTrans(String op, String way, String pathName_server, String pathName_client, int port_file) {// 记录了服务器文件路径，即使传输断了也可以由路径找到破损文件并继续传输
 		try {
 			writeObject(op);
-			String cd = (String) readObject();// 服务器当前路径
-			if (first) // 在当且仅当第一次的时候确定了绝对路径
-				fileName_server = cd + "\\" + fileName_server;
 			writeObject(way);
-			writeObject(fileName_server);
+			writeObject(pathName_server);
 			writeInt(port_file);
 			Socket socket_file = socket_file(port_file, false);
 			socket_file.setSoTimeout(timeout);// 设置文件传输超时时间
@@ -136,13 +162,9 @@ public class IOS {// 关于IO流的处理，大多是指令流
 			return this;// 成功则返回自己
 		} catch (Exception e) {
 			IOS ios = keepConnect();// 失败则返回新建立的
-			if (ios != null) {
-				System.out.println("再次成功连接，是否继续刚才文件的传输？y/n");
-				if (sin.next().equals("y")) {
-					// 注意下面这句话是ios=ios.breakpoint(...)而不是ios=this.breakpoint(...)，因为这里要用新对象ios，旧的对象this因为断网而废掉了
-					ios = ios.keepTrans(false, op, way, fileName_server, pathName_client, port_file);// 再次传输恐怕又出现断网，所以用递归
-				}
-				return ios;// 返回最新的连接
+			if (ios != null) {// 一旦建立成功就继续传输文件
+				// 注意下面这句话是ios=ios.breakpoint(...)而不是ios=this.breakpoint(...)，因为这里要用新对象ios，旧的对象this因为断网而废掉了
+				return ios.keepTrans(op, way, pathName_server, pathName_client, port_file);// 再次传输恐怕又出现断网，所以用递归
 			}
 			return null;
 		}
@@ -154,6 +176,7 @@ public class IOS {// 关于IO流的处理，大多是指令流
 			fis.skip(readLong());
 			trans(fis, socket.getOutputStream(), way);
 		} else {
+			file.getParentFile().mkdirs();
 			file.createNewFile();
 			writeLong(file.length());
 			trans(socket.getInputStream(), new FileOutputStream(file, true), way);// 追加文件
@@ -162,9 +185,10 @@ public class IOS {// 关于IO流的处理，大多是指令流
 
 	public void trans(InputStream is, OutputStream os, String way) throws Exception {
 		if (way.equals("binary")) {
+			byte b[] = new byte[1024];// 加个缓冲快的飞起，哈哈
 			int c;
-			while ((c = is.read()) != -1) {
-				os.write(c);
+			while ((c = is.read(b)) != -1) {
+				os.write(b, 0, c);
 			}
 		} else {// ascii只能传文本文件，传二进制文件导致8位字节转换成16位字符而破坏文件
 			BufferedReader br = new BufferedReader(new InputStreamReader(is));
@@ -180,17 +204,37 @@ public class IOS {// 关于IO流的处理，大多是指令流
 		os.close();
 	}
 
-	public static void deleteDir(String aPath) {// 删除文件、子文件
-		File file = new File(aPath);
+	public static void delete(File file) {// 删除文件、子文件
 		if (file.isDirectory()) {
 			File[] files = file.listFiles();
 			for (File f : files) {
-				if (f.isDirectory())
-					deleteDir(f.getAbsolutePath());
-				else
-					f.delete();
+				delete(f);
 			}
 		}
 		file.delete();
+	}
+
+	public static Vector<String> vrPath(File files[]) {// 多目录下的所有文件的相对目录，有前导'\'
+		vrPath = new Vector<String>();
+		for (File file : files)
+			vrPath(file, "");
+		return vrPath;
+	}
+
+	public static Vector<String> vrPath(String files[]) {// 多目录下的所有文件的相对目录，有前导'\'
+		vrPath = new Vector<String>();
+		for (String file : files)
+			vrPath(new File(file), "");
+		return vrPath;
+	}
+
+	private static void vrPath(File file, String fa) {// 获取一个文件夹下的所有子文件的相对路径（不要理解成仅仅获取文件名啊）
+		String cur = fa + "\\" + file.getName();
+		if (file.isDirectory()) {
+			File[] files = file.listFiles();
+			for (File f : files)
+				vrPath(f, cur);
+		} else
+			vrPath.add(cur);
 	}
 }
