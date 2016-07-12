@@ -23,7 +23,7 @@ public class ServerThread extends Thread {// 一旦断网，服务器的这个�
 				String op = (String) ios.readObject();
 				if (op.equals("bye")) {
 					ios.close();
-					JOptionPane.showMessageDialog(null, "用户" + ios.id + "下线");
+					JOptionPane.showMessageDialog(null, "用户" + ios.id + "正常下线");
 					break;
 				}
 
@@ -48,7 +48,7 @@ public class ServerThread extends Thread {// 一旦断网，服务器的这个�
 					for (int i = 0; i < files.length; i++)
 						isFile[i] = files[i].isFile();// 在线判断是否是文件
 					ios.writeObject(files);
-					ios.writeObject(isFile);// 传输问价类型
+					ios.writeObject(isFile);// 传输文件类型
 				} else if (op.startsWith("cd")) {// 改变当前目录
 					ios.cd = (String) ios.readObject();
 				} else if (op.equals("delete")) {// 删除多个

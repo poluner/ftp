@@ -2,6 +2,7 @@ package client;
 
 import java.awt.BorderLayout;
 import java.awt.EventQueue;
+import java.awt.Graphics;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.WindowAdapter;
@@ -20,6 +21,7 @@ import javax.swing.JSplitPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.ButtonGroup;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JRadioButton;
@@ -65,6 +67,7 @@ public class Client extends JFrame implements MouseListener {
 	 */
 	public Client(IOS ios) {
 		this.ios = ios;
+		setTitle("hello" + ios.id);
 		setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		addWindowListener(new WindowAdapter() {// 窗口关闭事件
 			public void windowClosing(WindowEvent e) {
@@ -80,7 +83,13 @@ public class Client extends JFrame implements MouseListener {
 
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 631, 379);
-		contentPane = new JPanel();
+		contentPane = new JPanel() {
+			public void paintComponent(Graphics g) {
+				super.paintComponent(g);
+				ImageIcon ii = new ImageIcon("background.jpg");
+				g.drawImage(ii.getImage(), 0, 0, getWidth(), getHeight(), ii.getImageObserver());
+			}
+		};
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		contentPane.setLayout(new BorderLayout(0, 0));
 		setContentPane(contentPane);
@@ -148,6 +157,17 @@ public class Client extends JFrame implements MouseListener {
 		button_delete.addMouseListener(this);
 		button_upload.addMouseListener(this);
 		button_download.addMouseListener(this);
+
+		// 设置透明
+		scrollPane.setOpaque(false);
+		scrollPane.getViewport().setOpaque(false);
+		splitPane.setOpaque(false);
+		panel.setOpaque(false);
+		radioButton_ascii.setOpaque(false);
+		radioButton_binary.setOpaque(false);
+		radioButton_passive.setOpaque(false);
+		radioButton_port.setOpaque(false);
+
 		setVisible(true);
 	}
 
@@ -189,7 +209,7 @@ public class Client extends JFrame implements MouseListener {
 						int p = ios.cd.lastIndexOf("\\");
 						if (p >= 0) // 如果没有上一层就不可返回了
 							ios.cd = ios.cd.substring(0, p);
-					} else if (isFile[row]==false) {// 是文件夹
+					} else if (isFile[row] == false) {// 是文件夹
 						ios.cd += "\\" + (String) table.getValueAt(row, 0);
 					}
 					ios.writeObject("cd");
@@ -209,7 +229,7 @@ public class Client extends JFrame implements MouseListener {
 			} else if (e.getSource() == button_upload || e.getSource() == button_download) {// 上传下载
 				int port_file = port();// 被动就是-1
 				if ((radioButton_port.isSelected() && port_file != -1 || radioButton_passive.isSelected())
-						&& radioButton_binary.isSelected() || radioButton_ascii.isSelected()) {
+						&& (radioButton_binary.isSelected() || radioButton_ascii.isSelected())) {
 					String pathNames_server[];
 					String pathNames_client[];
 					if (e.getSource() == button_upload) {// 上传
@@ -255,13 +275,14 @@ public class Client extends JFrame implements MouseListener {
 						return;
 
 					for (int i = 0; i < pathNames_server.length; i++) {// 多次执行单文件传输
+						setTitle("正在传输文件" + pathNames_server[i]);
 						ios = ios.keepTrans(e.getSource() == button_upload ? "upload" : "download",
 								radioButton_binary.isSelected() ? "binary" : "ascii", pathNames_server[i],
 								pathNames_client[i], port_file);
-						setTitle("文件" + pathNames_server[i] + "传输完毕");
+						setTitle("文件传输完毕" + pathNames_server[i]);
 					}
 					JOptionPane.showMessageDialog(null, pathNames_server.length + "个文件传输完毕");
-					setTitle("");
+					setTitle("hello" + ios.id);
 					if (e.getSource() == button_upload)
 						refreshTable();// 上传就刷新
 				}
@@ -278,11 +299,9 @@ public class Client extends JFrame implements MouseListener {
 			int port = Integer.parseInt(textField_port.getText());
 			if (port >= 0 && port <= 65535) // 合法
 				return port;
-			else
-				return -1;
 		} catch (Exception e) {// 失败
-			return -1;
 		}
+		return -1;
 	}
 
 	@Override
