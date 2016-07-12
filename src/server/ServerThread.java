@@ -13,8 +13,8 @@ import ios.IOS;
 public class ServerThread extends Thread {// 一旦断网，服务器的这个线程就会立刻结束，所以这里不用做特别的改动
 	IOS ios;
 
-	ServerThread(Socket socket_cmd, Connection connection,String cd) throws Exception {
-		ios = new IOS(socket_cmd, connection,cd);
+	ServerThread(Socket socket_cmd, Connection connection, String cd) throws Exception {
+		ios = new IOS(socket_cmd, connection, cd);
 	}
 
 	public void run() {
@@ -43,7 +43,12 @@ public class ServerThread extends Thread {// 一旦断网，服务器的这个�
 					ios.load(new File(pathName), socket_file, op.equals("download") ? "upload" : "download", way);// 服务器的上传下载和客户端刚好相反
 					socket_file.close();// 用完了就关闭socket流
 				} else if (op.equals("list")) {// 列出当前目录下的目录结构
-					ios.writeObject(new File(ios.cd).listFiles());
+					File files[] = new File(ios.cd).listFiles();
+					boolean isFile[] = new boolean[files.length];
+					for (int i = 0; i < files.length; i++)
+						isFile[i] = files[i].isFile();// 在线判断是否是文件
+					ios.writeObject(files);
+					ios.writeObject(isFile);// 传输问价类型
 				} else if (op.startsWith("cd")) {// 改变当前目录
 					ios.cd = (String) ios.readObject();
 				} else if (op.equals("delete")) {// 删除多个

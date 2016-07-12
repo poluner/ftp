@@ -30,6 +30,7 @@ import javax.swing.table.DefaultTableModel;
 public class Client extends JFrame implements MouseListener {
 	public IOS ios;
 	public File files_table[];// 保存列表中的文件
+	public boolean isFile[];// 由于isFile是在线判断，所以要保存下来
 
 	private JPanel contentPane;
 	private JTable table;
@@ -154,8 +155,8 @@ public class Client extends JFrame implements MouseListener {
 		try {
 			String op = "list";
 			ios.writeObject(op);
-			files_table = (File[]) ios.readObject();
-
+			files_table = (File[]) ios.readObject();// 只有其中的文件名/文件夹名可以使用，不可用于判断文件类型
+			isFile = (boolean[]) ios.readObject();// 保存是否是文件
 			table.setModel(new DefaultTableModel(files_table(), new String[] { "当前目录：" + ios.cd }) {
 				public boolean isCellEditable(int row, int column) {// 返回true表示能编辑，false表示不能编辑
 					return false;
@@ -188,7 +189,7 @@ public class Client extends JFrame implements MouseListener {
 						int p = ios.cd.lastIndexOf("\\");
 						if (p >= 0) // 如果没有上一层就不可返回了
 							ios.cd = ios.cd.substring(0, p);
-					} else if (files_table[row].isDirectory()) {// 是文件夹
+					} else if (isFile[row]==false) {// 是文件夹
 						ios.cd += "\\" + (String) table.getValueAt(row, 0);
 					}
 					ios.writeObject("cd");
