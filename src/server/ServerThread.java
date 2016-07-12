@@ -6,13 +6,15 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.Vector;
 
+import javax.swing.JOptionPane;
+
 import ios.IOS;
 
 public class ServerThread extends Thread {// 一旦断网，服务器的这个线程就会立刻结束，所以这里不用做特别的改动
 	IOS ios;
 
-	ServerThread(Socket socket_cmd, Connection connection) throws Exception {
-		ios = new IOS(socket_cmd, connection);
+	ServerThread(Socket socket_cmd, Connection connection,String cd) throws Exception {
+		ios = new IOS(socket_cmd, connection,cd);
 	}
 
 	public void run() {
@@ -21,7 +23,7 @@ public class ServerThread extends Thread {// 一旦断网，服务器的这个�
 				String op = (String) ios.readObject();
 				if (op.equals("bye")) {
 					ios.close();
-					System.out.println("通信结束");
+					JOptionPane.showMessageDialog(null, "用户" + ios.id + "下线");
 					break;
 				}
 
@@ -53,7 +55,7 @@ public class ServerThread extends Thread {// 一旦断网，服务器的这个�
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
-			System.err.println("异常断开一个连接");
+			JOptionPane.showMessageDialog(null, "用户" + ios.id + "异常下线");
 		}
 	}
 

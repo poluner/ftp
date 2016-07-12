@@ -34,10 +34,11 @@ public class IOS {// 关于IO流的处理，大多是指令流
 	public String id;
 	public String pw;
 	public static Vector<String> vrPath;// 相对路径
-	public String cd = "B:\\Desktop";// 设置服务器当前目录，客户端的会与之同步
+	public String cd;// 设置服务器当前目录，客户端的会与之同步
 
-	public IOS(Socket socket_cmd, Connection connection) throws Exception {// 服务器
+	public IOS(Socket socket_cmd, Connection connection, String cd) throws Exception {// 服务器
 		this.socket_cmd = socket_cmd;
+		this.cd = cd;// 服务器给出初始目录
 		ois = new ObjectInputStream(socket_cmd.getInputStream());
 		oos = new ObjectOutputStream(socket_cmd.getOutputStream());
 		sin = new Scanner(System.in);
