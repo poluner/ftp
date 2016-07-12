@@ -45,9 +45,11 @@ public class IOS {// 关于IO流的处理，大多是指令流
 
 		id = (String) readObject();// 获取用户发来的id和pw，然后更新自己保存过的id和pw
 		pw = (String) readObject();
-		if (connection.prepareStatement("select * from Users where id='" + id + "'and pw='" + pw + "'").executeQuery()
-				.next() == false)
-			throw new Exception();// 密码错误则抛出异常，这样客户端也就自动断开连接了
+		boolean ok = connection.prepareStatement("select * from Users where id='" + id + "'and pw='" + pw + "'")
+				.executeQuery().next();
+		writeBoolean(ok);// 立刻告知客户是否登陆成功
+		if (ok == false)
+			throw new Exception();// 密码错误则抛出异常，结束该服务线程
 		writeObject(cd);
 	}
 
@@ -62,7 +64,10 @@ public class IOS {// 关于IO流的处理，大多是指令流
 		sin = new Scanner(System.in);
 		writeObject(id);
 		writeObject(pw);
-		cd = (String) readObject();// 如果服务器抛出异常，这里也会异常，从而连接不上
+		boolean ok = readBoolean();
+		if (ok == false) // 密码错误就立刻响应
+			throw new Exception();
+		cd = (String) readObject();
 	}
 
 	public void close() throws Exception {// 关闭流
