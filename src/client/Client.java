@@ -301,9 +301,14 @@ public class Client extends JFrame implements MouseListener {
 		}
 	}
 
-	public static void exit() {// 断往后操作将抛出异常从而退出程序
-		JOptionPane.showMessageDialog(null, "退出程序", "网络断开", JOptionPane.ERROR_MESSAGE);
-		System.exit(0);
+	public void exit() {// 断网后操作将抛出异常
+		if (ios != null) {// 先询问用户选择是否连接
+			ios = ios.keepConnect();
+			refreshTable();// 每一次重新连接都要刷新列表
+		} else {// 用户选择放弃连接
+			JOptionPane.showMessageDialog(null, "退出程序", "网络断开", JOptionPane.ERROR_MESSAGE);
+			System.exit(0);
+		}
 	}
 
 	public int port() {
