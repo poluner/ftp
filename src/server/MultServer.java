@@ -1,12 +1,10 @@
 package server;
 
-import java.awt.FileDialog;
 import java.net.ServerSocket;
 import java.sql.Connection;
 import java.sql.DriverManager;
 
 import javax.swing.JFileChooser;
-import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.UIManager;
 
@@ -40,6 +38,7 @@ public class MultServer extends Thread {
 				JOptionPane.CLOSED_OPTION) != JOptionPane.OK_OPTION)
 			;
 		multServer.serverSocket_cmd.close();// 关闭已释放该端口
+		System.exit(0);// 将所有程序退出，包括服务线程，缺少这句话会导致服务线程不会关闭
 	}
 
 	public void run() {

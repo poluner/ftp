@@ -30,7 +30,7 @@ import javax.swing.UIManager;
 import javax.swing.table.DefaultTableModel;
 
 public class Client extends JFrame implements MouseListener {
-	public IOS ios;
+	public IOS ios;// 如果断网的话，ios会指向新的对象，因此必须使用最新的ios才行
 	public File files_table[];// 保存列表中的文件
 	public boolean isFile[];// 由于isFile是在线判断，所以要保存下来
 
@@ -65,14 +65,14 @@ public class Client extends JFrame implements MouseListener {
 	/**
 	 * Create the frame.
 	 */
-	public Client(IOS ios) {
-		this.ios = ios;
+	public Client(IOS ios_tmp) {
+		this.ios = ios_tmp;
 		setTitle("hello" + ios.id);
 		setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 		addWindowListener(new WindowAdapter() {// 窗口关闭事件
 			public void windowClosing(WindowEvent e) {
 				try {
-					ios.writeObject("bye");
+					ios.writeObject("bye");// 这里的ios必须是最新的，因此构造函数中的ios不可同名
 					ios.close();
 					JOptionPane.showMessageDialog(null, "退出正常");
 				} catch (Exception e1) {
@@ -182,10 +182,9 @@ public class Client extends JFrame implements MouseListener {
 					return false;
 				}
 			});
-		} catch (Exception e) {
-			e.printStackTrace();
+		} catch (Exception e) {// 断网结束程序
+			exit();
 		}
-
 	}
 
 	public Object[][] files_table() {
@@ -228,68 +227,83 @@ public class Client extends JFrame implements MouseListener {
 				refreshTable();
 			} else if (e.getSource() == button_upload || e.getSource() == button_download) {// 上传下载
 				int port_file = port();// 被动就是-1
-				if ((radioButton_port.isSelected() && port_file != -1 || radioButton_passive.isSelected())
-						&& (radioButton_binary.isSelected() || radioButton_ascii.isSelected())) {
-					String pathNames_server[];
-					String pathNames_client[];
-					if (e.getSource() == button_upload) {// 上传
-						JFileChooser fc = new JFileChooser();
-						fc.setMultiSelectionEnabled(true);// 设置多选
-						fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);// 可以同时选择文件和文件夹
-						if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) { // 如果没有这句话，点击了返回也会选择文件
-							File files[] = fc.getSelectedFiles();// 多选的文件和文件夹
-							Vector<String> vrPath_client = IOS.vrPath(files);// 获取客户端的这些文件夹下的所有文件
-							pathNames_client = new String[vrPath_client.size()];
-							pathNames_server = new String[vrPath_client.size()];
-							for (int i = 0; i < vrPath_client.size(); i++) {
-								pathNames_client[i] = files[0].getParent() + vrPath_client.elementAt(i);
-								pathNames_server[i] = ios.cd + vrPath_client.elementAt(i);
-							}
-						} else
-							return;
+				if (((radioButton_port.isSelected() && port_file != -1 || radioButton_passive.isSelected())
+						&& (radioButton_binary.isSelected() || radioButton_ascii.isSelected())) == false)
+					return;
 
-					} else if (table.getSelectedRow() != files_table.length) {// 下载，没有点到“返回上一层”
-						// 首先获取服务器所有文件，因为服务器不稳定，信息都要保存在客户端
-						JFileChooser fc = new JFileChooser();
-						fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);// 设置只能打开目录
-						if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-							String cd_client = fc.getSelectedFile().getPath();
-							int rows[] = table.getSelectedRows();
-							String files[] = new String[rows.length];
-							for (int i = 0; i < rows.length; i++) {
-								files[i] = ios.cd + "\\" + (String) table.getValueAt(rows[i], 0);
-							}
-							ios.writeObject("downloadFirst");// 非断点下载
-							ios.writeObject(files);
-							Vector<File> vrPath_server = (Vector<File>) ios.readObject();// 获取且暂时保存服务器所选的所有文件的路径
-
-							pathNames_server = new String[vrPath_server.size()];
-							pathNames_client = new String[vrPath_server.size()];
-							for (int i = 0; i < vrPath_server.size(); i++) {
-								pathNames_server[i] = ios.cd + vrPath_server.elementAt(i);
-								pathNames_client[i] = cd_client + vrPath_server.elementAt(i);
-							}
-						} else
-							return;
-					} else
+				String pathNames_server[];
+				String pathNames_client[];
+				if (e.getSource() == button_upload) {// 上传
+					JFileChooser fc = new JFileChooser();
+					fc.setMultiSelectionEnabled(true);// 设置多选
+					fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);// 可以同时选择文件和文件夹
+					if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION)
 						return;
 
-					for (int i = 0; i < pathNames_server.length; i++) {// 多次执行单文件传输
-						setTitle("正在传输文件" + pathNames_server[i]);
-						ios = ios.keepTrans(e.getSource() == button_upload ? "upload" : "download",
-								radioButton_binary.isSelected() ? "binary" : "ascii", pathNames_server[i],
-								pathNames_client[i], port_file);
-						setTitle("文件传输完毕" + pathNames_server[i]);
+					// 如果没有这句话，点击了返回也会选择文件
+					File files[] = fc.getSelectedFiles();// 多选的文件和文件夹
+					Vector<String> vrPath_client = IOS.vrPath(files);// 获取客户端的这些文件夹下的所有文件
+					pathNames_client = new String[vrPath_client.size()];
+					pathNames_server = new String[vrPath_client.size()];
+					for (int i = 0; i < vrPath_client.size(); i++) {
+						pathNames_client[i] = files[0].getParent() + vrPath_client.elementAt(i);
+						pathNames_server[i] = ios.cd + vrPath_client.elementAt(i);
 					}
-					JOptionPane.showMessageDialog(null, pathNames_server.length + "个文件传输完毕");
-					setTitle("hello" + ios.id);
-					if (e.getSource() == button_upload)
-						refreshTable();// 上传就刷新
+
+				} else {// 下载，没有点到
+					// 首先获取服务器所有文件，因为服务器不稳定，信息都要保存在客户端
+					int rows[] = table.getSelectedRows();
+					if (rows.length == 0)
+						return;// 没有选择
+					if (table.isRowSelected(files_table.length) == true)
+						return;// 点到“返回上一层”
+					JFileChooser fc = new JFileChooser();
+					fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);// 设置只能打开目录
+					if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION)
+						return;
+
+					String cd_client = fc.getSelectedFile().getPath();
+
+					String files[] = new String[rows.length];
+					for (int i = 0; i < rows.length; i++) {
+						files[i] = ios.cd + "\\" + (String) table.getValueAt(rows[i], 0);
+					}
+					ios.writeObject("downloadFirst");// 非断点下载
+					ios.writeObject(files);
+					Vector<File> vrPath_server = (Vector<File>) ios.readObject();// 获取且暂时保存服务器所选的所有文件的路径
+
+					pathNames_server = new String[vrPath_server.size()];
+					pathNames_client = new String[vrPath_server.size()];
+					for (int i = 0; i < vrPath_server.size(); i++) {
+						pathNames_server[i] = ios.cd + vrPath_server.elementAt(i);
+						pathNames_client[i] = cd_client + vrPath_server.elementAt(i);
+					}
+
 				}
+
+				for (int i = 0; i < pathNames_server.length; i++) {// 多次执行单文件传输
+					setTitle("正在传输文件" + pathNames_server[i]);
+					ios = ios.keepTrans(e.getSource() == button_upload ? "upload" : "download",
+							radioButton_binary.isSelected() ? "binary" : "ascii", pathNames_server[i],
+							pathNames_client[i], port_file);
+					setTitle("文件传输完毕" + pathNames_server[i]);
+				}
+
+				if (ios != null) {
+					JOptionPane.showMessageDialog(null, pathNames_server.length + "个文件传输结束");
+				}
+				setTitle("hello" + ios.id);
+				refreshTable();// 因为断网后服务器的当前路径可能发生改变，所以传输完成后都要刷新
+
 			}
 		} catch (Exception e1) {
-			e1.printStackTrace();
+			exit();
 		}
+	}
+
+	public static void exit() {// 断往后操作将抛出异常从而退出程序
+		JOptionPane.showMessageDialog(null, "退出程序", "网络断开", JOptionPane.ERROR_MESSAGE);
+		System.exit(0);
 	}
 
 	public int port() {

@@ -115,6 +115,7 @@ public class IOS {// 关于IO流的处理，大多是指令流
 		if (isServer) {
 			if (port != -1) {// 主动就直接用这个port
 				String ip = (String) readObject();// 客户端ip
+				Thread.sleep(240 * 1000);// socket.close()后有240秒的端口TIME_WAIT时间，这段时间不可使用
 				return new Socket(ip, port, InetAddress.getLocalHost(), 20);// 将本机20端口连接客户端的指定端口
 			} else {// 被动
 				// 高端端口号范围[1025,65535]，万一获取的端口正忙怎么办？
@@ -139,14 +140,15 @@ public class IOS {// 关于IO流的处理，大多是指令流
 		}
 	}
 
-	public IOS keepConnect() {// 客户端，坚持传完文件，除非用户主动放弃！！！
+	public IOS keepConnect() {// 客户端再次连接前将弹出对话框询问用户是否再次连接，用户可以选择放弃从而异常下线，续传终止
 		try {
-			return new IOS(ip_server, port_cmd, id, pw);// 连接成功
-		} catch (Exception e) {
 			if (JOptionPane.showConfirmDialog(null, "是否尝试连接？", "连接已断开",
 					JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION)
-				return keepConnect();// 失败后继续连接
-			return null;// 用户放弃连接
+				return new IOS(ip_server, port_cmd, id, pw);// 连接成功
+			else
+				return null;// 用户放弃连接
+		} catch (Exception e) {
+			return keepConnect();// 失败后继续连接
 		}
 	}
 
@@ -186,23 +188,31 @@ public class IOS {// 关于IO流的处理，大多是指令流
 
 	public void trans(InputStream is, OutputStream os, String way) throws Exception {
 		if (way.equals("binary")) {
-			byte b[] = new byte[1024];// 加个缓冲快的飞起，哈哈
-			int c;
-			while ((c = is.read(b)) != -1) {
-				os.write(b, 0, c);
+			try {
+				byte b[] = new byte[1024];// 加个缓冲快的飞起，哈哈
+				int c;
+				while ((c = is.read(b)) != -1) {
+					os.write(b, 0, c);
+				}
+			} finally {// 关闭流操作必须放在finally中，因为不管是否出现读写异常都要将流关闭以释放读写权
+				is.close();
+				os.close();
 			}
 		} else {// ascii只能传文本文件，传二进制文件导致8位字节转换成16位字符而破坏文件
 			BufferedReader br = new BufferedReader(new InputStreamReader(is));
 			PrintWriter pw = new PrintWriter(os);
-			String s;
-			while ((s = br.readLine()) != null) {
-				pw.println(s);
+			try {
+				String s;
+				while ((s = br.readLine()) != null) {
+					pw.println(s);
+				}
+			} finally {// 关闭流操作必须放在finally中，因为不管是否出现读写异常都要将流关闭以释放读写权
+				br.close();
+				pw.close();
+				is.close();
+				os.close();
 			}
-			br.close();// 先关闭这两个流在关闭is,os流
-			pw.close();
 		}
-		is.close();
-		os.close();
 	}
 
 	public static void delete(File file) {// 删除文件、子文件
