@@ -8,6 +8,7 @@ import java.awt.event.MouseListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.io.IOException;
 import java.util.Vector;
 
 import javax.swing.JFrame;
@@ -37,7 +38,6 @@ public class Client extends JFrame implements MouseListener {
 	private JPanel contentPane;
 	private JTable table;
 	private JTextField textField_port;
-	private JButton button_list;
 	private JButton button_delete;
 	private JButton button_upload;
 	private JButton button_download;
@@ -76,7 +76,7 @@ public class Client extends JFrame implements MouseListener {
 					ios.close();
 					JOptionPane.showMessageDialog(null, "退出正常");
 				} catch (Exception e1) {
-					JOptionPane.showMessageDialog(null, "退出程序", "网络断开", JOptionPane.ERROR_MESSAGE);
+					JOptionPane.showMessageDialog(null, "退出异常");
 				}
 			}
 		});
@@ -102,16 +102,14 @@ public class Client extends JFrame implements MouseListener {
 		splitPane.setLeftComponent(scrollPane);
 
 		table = new JTable();
-		refreshTable();
+
+		refreshTable();// 构造函数获取的就是最新且存在的cd
+
 		scrollPane.setViewportView(table);
 
 		JPanel panel = new JPanel();
 		splitPane.setRightComponent(panel);
 		panel.setLayout(null);
-
-		button_list = new JButton("刷新");
-		button_list.setBounds(10, 156, 93, 23);
-		panel.add(button_list);
 
 		button_delete = new JButton("删除");
 		button_delete.setBounds(10, 202, 93, 23);
@@ -153,7 +151,6 @@ public class Client extends JFrame implements MouseListener {
 		bgba.add(radioButton_ascii);
 
 		table.addMouseListener(this);
-		button_list.addMouseListener(this);
 		button_delete.addMouseListener(this);
 		button_upload.addMouseListener(this);
 		button_download.addMouseListener(this);
@@ -183,7 +180,7 @@ public class Client extends JFrame implements MouseListener {
 				}
 			});
 		} catch (Exception e) {// 断网结束程序
-			exit();
+			exit(e);
 		}
 	}
 
@@ -199,9 +196,7 @@ public class Client extends JFrame implements MouseListener {
 	@Override
 	public void mouseReleased(MouseEvent e) {
 		try {
-			if (e.getSource() == button_list) {// 刷新
-				refreshTable();
-			} else if (e.getSource() == table) {
+			if (e.getSource() == table) {
 				int row = table.getSelectedRow();
 				if (e.getClickCount() == 2) {// 只有文件夹可双击
 					if (row == files_table.length) {// 返回上一层
@@ -294,14 +289,14 @@ public class Client extends JFrame implements MouseListener {
 				}
 				setTitle("hello" + ios.id);
 				refreshTable();// 因为断网后服务器的当前路径可能发生改变，所以传输完成后都要刷新
-
 			}
 		} catch (Exception e1) {
-			exit();
+			exit(e1);
 		}
 	}
 
-	public void exit() {// 断网后操作将抛出异常
+	public void exit(Exception e) {// 断网后操作将抛出异常
+		// e.printStackTrace();// 方便打印错误信息
 		if (ios != null) {// 先询问用户选择是否连接
 			ios = ios.keepConnect();
 			refreshTable();// 每一次重新连接都要刷新列表
@@ -325,10 +320,18 @@ public class Client extends JFrame implements MouseListener {
 
 	@Override
 	public void mouseClicked(MouseEvent arg0) {
+
 	}
 
 	@Override
-	public void mouseEntered(MouseEvent arg0) {
+	public void mouseEntered(MouseEvent arg0) {// 鼠标进入组件的时候触发，这样就不需要刷新按钮了啊
+		try {
+			if (ios.newestCd(this) == false) {
+				refreshTable();
+			}
+		} catch (Exception e) {
+			exit(e);
+		}
 	}
 
 	@Override

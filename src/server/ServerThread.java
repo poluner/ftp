@@ -18,15 +18,14 @@ public class ServerThread extends Thread {// 一旦断网，服务器的这个�
 	}
 
 	public void run() {
+		boolean normalExit = false;
 		try {
 			while (ios != null) {
 				String op = (String) ios.readObject();
 				if (op.equals("bye")) {
-					ios.close();
-					JOptionPane.showMessageDialog(null, "用户" + ios.id + "正常下线");
+					normalExit = true;// 正常退出
 					break;
 				}
-
 				// 首次非断点下载情况下，获取所选的服务器的所有文件和文件夹下的所有子文件，这些待传输的文件将暂时保存在客户端，直到这些文件全部下载
 				if (op.equals("downloadFirst")) {// 只有下载才断点，上传不分是否断点
 					String files[] = (String[]) ios.readObject();
@@ -56,11 +55,20 @@ public class ServerThread extends Thread {// 一旦断网，服务器的这个�
 					for (String pathName : pathNames) {
 						IOS.delete(new File(pathName));
 					}
+				} else if (op.equals("newestCd")) {// 获取最新当前路径
+					ios.newestCd();
+					ios.writeObject(ios.cd);
 				}
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
-			JOptionPane.showMessageDialog(null, "用户" + ios.id + "异常下线");
+			normalExit = false;// 异常退出
+		} finally {
+			try {
+				ios.close();// 流结束放在finally中才安全
+				JOptionPane.showMessageDialog(null, "用户" + ios.id + (normalExit ? "正常下线" : "异常下线"));
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 	}
 

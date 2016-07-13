@@ -19,6 +19,7 @@ import java.util.Random;
 import java.util.Scanner;
 import java.util.Vector;
 
+import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 
 import com.sun.javafx.sg.prism.web.NGWebView;
@@ -50,7 +51,31 @@ public class IOS {// 关于IO流的处理，大多是指令流
 		writeBoolean(ok);// 立刻告知客户是否登陆成功
 		if (ok == false)
 			throw new Exception();// 密码错误则抛出异常，结束该服务线程
-		writeObject(cd);
+
+		newestCd();// 使cd最新
+		writeObject(this.cd);
+	}
+
+	public void newestCd() {// 使cd最新
+		while (new File(cd).exists() == false) {// 当前路径不存在
+			int p = cd.lastIndexOf("\\");
+			if (p == -1) // 如果该磁盘都被删除，那么就要结束服务器及所有服务线程，因为当前目录已不可使用
+				System.exit(0);
+			else
+				cd = cd.substring(0, p);// 返回上一层目录
+		}
+	}
+
+	public boolean newestCd(JFrame f) throws Exception {
+		writeObject("newestCd");
+		String cd = (String) readObject();
+		if (this.cd.equals(cd) == false) {
+			f.setTitle("hello" + id + "当前目录不存在，已返回上一层目录");
+			this.cd = cd;
+			return false;
+		}
+		f.setTitle("hello" + id);
+		return true;
 	}
 
 	public IOS(String ip_server, int port_cmd, String id, String pw) throws Exception {// 客户端
