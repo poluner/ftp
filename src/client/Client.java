@@ -76,7 +76,7 @@ public class Client extends JFrame implements MouseListener {
 					ios.close();
 					JOptionPane.showMessageDialog(null, "退出正常");
 				} catch (Exception e1) {
-					JOptionPane.showMessageDialog(null, "退出异常");
+					JOptionPane.showMessageDialog(null, "退出程序", "网络断开", JOptionPane.ERROR_MESSAGE);
 				}
 			}
 		});
