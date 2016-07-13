@@ -8,7 +8,6 @@ import java.awt.event.MouseListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
-import java.io.IOException;
 import java.util.Vector;
 
 import javax.swing.JFrame;
@@ -237,7 +236,7 @@ public class Client extends JFrame implements MouseListener {
 
 					// 如果没有这句话，点击了返回也会选择文件
 					File files[] = fc.getSelectedFiles();// 多选的文件和文件夹
-					Vector<String> vrPath_client = IOS.vrPath(files);// 获取客户端的这些文件夹下的所有文件
+					Vector<String> vrPath_client = ios.vrPath(files);// 获取客户端的这些文件夹下的所有文件
 					pathNames_client = new String[vrPath_client.size()];
 					pathNames_server = new String[vrPath_client.size()];
 					for (int i = 0; i < vrPath_client.size(); i++) {

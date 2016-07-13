@@ -34,7 +34,7 @@ public class IOS {// 关于IO流的处理，大多是指令流
 	public static final int timeout = 10000;
 	public String id;
 	public String pw;
-	public static Vector<String> vrPath;// 相对路径
+	public Vector<String> vrPath;// 相对路径
 	public String cd;// 设置服务器当前目录，客户端的会与之同步
 
 	public IOS(Socket socket_cmd, Connection connection, String cd) throws Exception {// 服务器
@@ -255,21 +255,21 @@ public class IOS {// 关于IO流的处理，大多是指令流
 		file.delete();
 	}
 
-	public static Vector<String> vrPath(File files[]) {// 多目录下的所有文件的相对目录，有前导'\'
+	public Vector<String> vrPath(File files[]) {// 多目录下的所有文件的相对目录，有前导'\'
 		vrPath = new Vector<String>();
 		for (File file : files)
 			vrPath(file, "");
 		return vrPath;
 	}
 
-	public static Vector<String> vrPath(String files[]) {// 多目录下的所有文件的相对目录，有前导'\'
+	public Vector<String> vrPath(String files[]) {// 多目录下的所有文件的相对目录，有前导'\'
 		vrPath = new Vector<String>();
 		for (String file : files)
 			vrPath(new File(file), "");
 		return vrPath;
 	}
 
-	private static void vrPath(File file, String fa) {// 获取一个文件夹下的所有子文件的相对路径（不要理解成仅仅获取文件名啊）
+	private void vrPath(File file, String fa) {// 获取一个文件夹下的所有子文件的相对路径（不要理解成仅仅获取文件名啊）
 		String cur = fa + "\\" + file.getName();
 		if (file.isDirectory()) {
 			File[] files = file.listFiles();
